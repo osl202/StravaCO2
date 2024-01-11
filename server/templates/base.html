@@ -11,12 +11,22 @@
     <body>
         <header>
             <ul id="nav-bar">
-                <a href="/"><li id="home">StravaC02</li></a>
-                <a href="/about"><li>About</li></a>
+                <li id="home"><a href="/">StravaC02</a></li>
+                <li><a href="/about">About</a></li>
             </ul>
+            {% if auth %}
+                <a id="btn-strava-disconnect" href="/deauthorize"><p>Sign out</p></a>
+            {% else %}
+                <a id="btn-strava-connect" href="{{ connect_url }}"><img src="/images/strava_connect.svg"/></a>
+            {% endif %}
         </header>
-        <div id="content">
-            {% block content %}{% endblock %}
+        <div id="content-wrapper">
+            <div id="content">
+                {% block content %}{% endblock %}
+            </div>
         </div>
     </body>
+    <footer>
+        <img id="strava-logo" src="/images/strava_logo.svg"/>
+    </footer>
 </html>

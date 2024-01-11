@@ -1,6 +1,7 @@
 :root {
-	--nav-background: #76c2ff;
-	--nav-height: 42px;
+	--nav-background: #242526;
+	--nav-height: 64px;
+	--max-page-width: 1100px;
 }
 
 body, html {
@@ -8,39 +9,45 @@ body, html {
 	padding: 0;
 }
 
+* {
+	font-family: sans-serif;
+}
+
 
 header {
-	width: 100%;
 	background-color: var(--nav-background);
+	display: flex;
+	flex-direction: row;
+	padding: 0 max(calc(50% - 0.5 * var(--max-page-width)), 0px);
 }
 
 header > #nav-bar {
-	margin: 0 10px;
+	flex: 1;
+	padding: 0;
+	margin: 0;
 	height: var(--nav-height);
 	display: flex;
 	flex-direction: row;
-	align-items: center;
 	list-style: none;
 }
 
-header > #nav-bar > * {
+#nav-bar > li {
 	transition: background-color 200ms;
-	margin: 0 10px 0 0;
-	padding: 0 10px;
+	height: 100%;
 }
 
-header > #nav-bar > *:hover {
-	background-color: rgba(0, 0, 0, 0.1);
+#nav-bar > li:hover {
+	background-color: rgba(255, 255, 255, 0.1);
 }
 
-header > #nav-bar li {
+#nav-bar > li > a {
+	display: block;
+	padding: 0 20px;
+	box-sizing: border-box;
+	height: 100%;
 	line-height: var(--nav-height);
-	max-width: 150px;
-}
-
-header > #nav-bar * {
 	text-decoration: none;
-	color: black;
+	color: #ddd;
 }
 
 #nav-bar #home {
@@ -48,7 +55,54 @@ header > #nav-bar * {
 	font-size: 150%;
 }
 
+header > #btn-strava-connect,
+header > #btn-strava-disconnect {
+	position: relative;
+	padding: 5px;
+	box-sizing: border-box;
+	display: flex;
+}
+
+header > #btn-strava-disconnect {
+	padding: 10px;
+	background-color: rgba(0, 0, 0, 0.1);
+	border: 2px solid rgba(255, 255, 255, 0.1);
+	border-radius: 4px;
+	margin: 10px;
+	text-decoration: none;
+}
+
+#btn-strava-connect img {
+	margin: auto;
+}
+
+#btn-strava-disconnect p {
+	display: block;
+	margin: auto;
+	color: white;
+	text-align: center;
+	font-weight: bold;
+}
+
+
+#content-wrapper {
+	width: 100%;
+	padding: 0 max(calc(50% - 0.5 * var(--max-page-width)), 0px);
+	box-sizing: border-box;
+}
 
 #content {
-	margin: 10px;
+	padding: 0 20px;
+}
+
+
+footer {
+	margin: 0 max(calc(50% - 0.5 * var(--max-page-width)), 0px);
+	margin-top: 20px;
+	border-top: 1px solid #ccc;
+}
+
+footer > #strava-logo {
+	height: 32px;
+	float: right;
 }
