@@ -1,7 +1,21 @@
 :root {
-	--nav-background: #242526;
 	--nav-height: 64px;
+	--font-color-dark: #222;
 	--max-page-width: 1100px;
+	--divider-color: #aaa;
+	--divider-color-dark: #666;
+}
+
+@keyframes bob {
+	0% {
+		transform: translateY(0);
+	}
+	50% {
+		transform: translateY(-4px) scale(1.04);
+	}
+	100% {
+		transform: translateY(0);
+	}
 }
 
 body, html {
@@ -15,7 +29,7 @@ body, html {
 
 
 header {
-	background-color: var(--nav-background);
+	border-bottom: 1px solid var(--divider-color);
 	display: flex;
 	flex-direction: row;
 	padding: 0 max(calc(50% - 0.5 * var(--max-page-width)), 0px);
@@ -33,21 +47,19 @@ header > #nav-bar {
 
 #nav-bar > li {
 	transition: background-color 200ms;
-	height: 100%;
 }
 
 #nav-bar > li:hover {
-	background-color: rgba(255, 255, 255, 0.1);
+	background-color: rgba(0, 0, 0, 0.2);
 }
 
 #nav-bar > li > a {
 	display: block;
 	padding: 0 20px;
 	box-sizing: border-box;
-	height: 100%;
 	line-height: var(--nav-height);
 	text-decoration: none;
-	color: #ddd;
+	color: var(--font-color-dark);
 }
 
 #nav-bar #home {
@@ -65,8 +77,7 @@ header > #btn-strava-disconnect {
 
 header > #btn-strava-disconnect {
 	padding: 10px;
-	background-color: rgba(0, 0, 0, 0.1);
-	border: 2px solid rgba(255, 255, 255, 0.1);
+	background-color: var(--font-color-dark);
 	border-radius: 4px;
 	margin: 10px;
 	text-decoration: none;
@@ -92,14 +103,110 @@ header > #btn-strava-disconnect {
 }
 
 #content {
-	padding: 0 20px;
+	padding: 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 20px;
+}
+
+
+.flex-row,
+.pill {
+	display: inline-flex;
+	flex-direction: row;
+	gap: 20px;
+	align-items: center;
+}
+
+.inline-row > * {
+	display: inline-block;
+	vertical-align: middle;
+}
+
+.inline-row > :not(:last-child) {
+	margin-right: 20px;
+}
+
+.nowrap {
+	flex-wrap: nowrap;
+	overflow: hidden;
+	text-wrap: nowrap;
+}
+
+.pill {
+	border-radius: 9999px; /* Sets radius equal to height */
+}
+
+.vline {
+	height: calc(100% - 20px);
+	width: 0;
+	margin: 10px 0;
+	border-right: 1px solid var(--divider-color);
+	transform: rotate(8deg);
+}
+
+.pill .vline {
+	border-color: var(--divider-color-dark);
+}
+
+section h1 {
+	text-transform: uppercase;
+	color: var(--divider-color-dark);
+	font-size: 100%;
+/*	display: table;
+	padding: 8px 12px;
+	font-size: 150%;
+	border-radius: 9999px;
+	border: 1px solid var(--divider-color);
+*/}
+
+section.profile > .pill {
+	background-color: var(--font-color-dark);
+	height: 100px;
+	padding-right: 30px;
+	color: white;
+}
+
+section.profile .avatar {
+	float: left;
+	border: 2px solid white;
+	border-radius: 100%;
+	height: 100%;
+}
+
+.avatar > img {
+	border-radius: 100%;
+	height: 100%;
+}
+
+section.summary p,
+section.profile p {
+	margin: 0;
+}
+
+section.profile .name {
+	font-size: 200%;
+}
+
+section.summary .stat-group {
+	border: 1px solid var(--divider-color);
+	padding: 10px 20px;
+	border-radius: 10px;
+}
+
+.stat-group > i {
+	font-size: 200%;
+	animation: bob ease-in-out 3s infinite;
+}
+
+.stat-group .distance {
+	font-weight: bold;
 }
 
 
 footer {
 	margin: 0 max(calc(50% - 0.5 * var(--max-page-width)), 0px);
-	margin-top: 20px;
-	border-top: 1px solid #ccc;
+	border-top: 1px solid var(--divider-color);
 }
 
 footer > #strava-logo {
