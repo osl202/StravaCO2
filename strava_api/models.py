@@ -11,7 +11,10 @@ from datetime import datetime
 from enum import StrEnum
 from inspect import signature
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Self, Tuple
+from typing import Any, Optional, Self, Tuple, TypeVar, Union, overload
+from . import APIResponse
+
+AnyModel = TypeVar('AnyModel', bound='Model')
 
 class Model(ABC):
     """A Strava API response model"""
@@ -25,17 +28,29 @@ class Model(ABC):
         """
         raise NotImplementedError()
 
+    @overload
     @classmethod
-    def fromJSON(cls: type[Self], json: dict[str, Any] = {}) -> Self:
+    def fromResponse(cls, res: list[Any]) -> list[Self]:
+        ...
+    @overload
+    @classmethod
+    def fromResponse(cls, res: dict[str, Any]) -> Self:
+        ...
+    @classmethod
+    def fromResponse(cls, res: APIResponse) -> Union[Self, list[Self]]:
         """
-        Initialises the model with keys from a dict by matching key and parameter names.
-        A derived class will need to initialise non-primitive types (e.g. fields that
-        are a `Model` themselves) before passing the JSON.
+        Initialises a model (or list of models) with keys from a dict by matching key
+        and parameter names. A derived class will need to initialise non-primitive types
+        (e.g. fields that are a `Model` themselves) before passing the JSON.
         """
-        # Filter the JSON keys to those defined in the model
-        keys = list(signature(cls.__init__).parameters.keys())[1:]
-        # Set fields not in the JSON to None
-        return cls(**{k: cls.parse_field(k, json[k]) if k in json else None for k in keys})
+        if isinstance(res, dict):
+            # Filter the JSON keys to those defined in the model
+            keys = list(signature(cls.__init__).parameters.keys())[1:]
+            # Set fields not in the JSON to None
+            return cls(**{k: cls.parse_field(k, res[k]) if k in res else None for k in keys})
+        else:
+            return [cls.fromResponse(r) for r in res]
+
 
 @dataclass(frozen=True)
 class Athlete(Model):
@@ -67,8 +82,20 @@ class Athlete(Model):
     # shoes: SummaryGear                      # The athlete's shoes. 
 
     @classmethod
-    def parse_field(cls, key, value):
+    def parse_field(cls, key, value) -> Any:
         return (datetime.fromisoformat(value) if key in ['created_at', 'updated_at'] else value)
+
+@dataclass(frozen=True)
+class ID(Model):
+    """
+    Class containing only the ID of the entity it represents. Sometimes returned
+    by Strava instead of a full `Athlete` model or similar.
+    """
+    id: int
+
+    @classmethod
+    def parse_field(cls, key: str, value: Any) -> Any:
+        return value
 
 @dataclass(frozen=True)
 class ActivityTotal(Model):
@@ -101,7 +128,7 @@ class ActivityStats(Model):
 
     @classmethod
     def parse_field(cls, key: str, value: Any) -> Any:
-        return ActivityTotal.fromJSON(value) if key.endswith('_totals') else value
+        return ActivityTotal.fromResponse(value) if key.endswith('_totals') else value
 
 class SportType(StrEnum):
     """An exhaustive list of the possible sports on Strava"""
@@ -162,7 +189,7 @@ class SummaryActivity(Model):
     id: int                                 # The unique identifier of the activity
     external_id: str                        # The identifier provided at upload time
     upload_id: int                          # The identifier of the upload that resulted in this activity
-    athlete: Athlete                        # An instance of Athlete, with only the `id` field.
+    athlete: ID                             # The athlete as only an ID
     name: str                               # The name of the activity
     distance: float                         # The activity's distance, in meters
     moving_time: int                        # The activity's moving time, in seconds
@@ -207,5 +234,7 @@ class SummaryActivity(Model):
             return datetime.fromisoformat(value)
         elif key.endswith('latlng'):
             return (value[0], value[1])
+        elif key == 'athlete':
+            return ID(value)
         else:
             return value
