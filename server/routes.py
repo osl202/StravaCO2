@@ -4,7 +4,7 @@ and their responses.
 """
 
 from . import app
-from flask import render_template, request, redirect
+from flask import Response, render_template, request, redirect
 
 import strava_api as api
 from . import units
@@ -12,12 +12,12 @@ from . import units
 
 @app.route('/')
 def home():
-    refresh = request.cookies.get('refresh-token')
-    if not refresh:
-        # The user hasn't authorized
-        return render_template('home/index.html', title='Home', connect_url=api.connect_url, auth=False)
-    tokens = api.OAuthTokens.from_refresh(refresh)
-    client = api.Client(tokens)
+    client = api.Client.from_refresh(request.cookies.get('refresh-token'))
+    if not client:
+        # The user hasn't authorized, delete stored token (if exists) and render home
+        res = Response(render_template('home/index.html', title='Home', connect_url=api.connect_url, auth=False))
+        res.delete_cookie('refresh-token')
+        return res
 
     res = render_template(
         'profile/index.html',
@@ -49,13 +49,13 @@ def authorize():
     if error:
         return error
 
-    # Get the access and refresh tokens
-    code = request.args.get('code')
-    tokens = api.OAuthTokens.from_code(code)
+    client = api.Client.from_code(request.args.get('code'))
+    if not client:
+        return "Failed to authenticate"
 
     # Set the refresh token as a cookie on the client
     res = redirect('/')
-    res.set_cookie('refresh-token', tokens.refresh, httponly=True, max_age=2592000)
+    res.set_cookie('refresh-token', client.tokens.refresh, httponly=True, max_age=2592000)
 
     return res
 
@@ -63,13 +63,8 @@ def authorize():
 @app.route('/deauthorize')
 def deauthorize():
     # The user wants to log out
-    refresh = request.cookies.get('refresh-token')
-    if not refresh:
-        # The user hasn't authorized
-        return render_template('home/index.html', title='Home', connect_url=api.connect_url)
-
-    tokens = api.OAuthTokens.from_refresh(refresh)
-    tokens.deauthorize()
+    client = api.Client.from_refresh(request.cookies.get('refresh-token'))
+    if client: client.deauthorize()
     res = redirect('/')
     res.delete_cookie('refresh-token')
     return res

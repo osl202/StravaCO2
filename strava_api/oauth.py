@@ -1,4 +1,6 @@
+from __future__ import annotations
 import os
+from typing import Optional
 import urllib.parse
 import requests
 from dataclasses import dataclass
@@ -28,7 +30,7 @@ class OAuthTokens:
         })
 
     @classmethod
-    def from_refresh(cls, refresh_token) -> 'OAuthTokens':
+    def from_refresh(cls, refresh_token) -> Optional[OAuthTokens]:
         """
         Given a refresh token from the client, we can obtain the new access and refresh tokens.
         """
@@ -39,11 +41,12 @@ class OAuthTokens:
             'refresh_token': refresh_token,
         })
         res = req.json()
+        if req.status_code != 200: return
         return cls(res['access_token'], res['refresh_token'])
 
 
     @classmethod
-    def from_code(cls, code) -> 'OAuthTokens':
+    def from_code(cls, auth_code) -> Optional[OAuthTokens]:
         """
         Given an authorization code from Strava, we can obtain the access and refresh tokens
         that allow us to access the user's data.
@@ -51,8 +54,9 @@ class OAuthTokens:
         req = requests.post("https://www.strava.com/api/v3/oauth/token", data={
             'client_id': CLIENT_ID,
             'client_secret': CLIENT_SECRET,
-            'code': code,
+            'code': auth_code,
             'grant_type': 'authorization_code',
         })
+        if req.status_code != 200: return
         res = req.json()
         return cls(res['access_token'], res['refresh_token'])

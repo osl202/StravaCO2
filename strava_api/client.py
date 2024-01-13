@@ -1,3 +1,5 @@
+from __future__ import annotations
+from typing import Optional
 import requests
 from functools import cached_property
 from .oauth import OAuthTokens
@@ -12,10 +14,28 @@ class Client:
     def __init__(self, tokens: OAuthTokens):
         self.tokens = tokens
 
+    @classmethod
+    def from_refresh(cls, refresh_token: Optional[str]) -> Optional[Client]:
+        if not refresh_token: return
+        tokens = OAuthTokens.from_refresh(refresh_token)
+        if not tokens: return
+        return Client(tokens)
+
+    @classmethod
+    def from_code(cls, auth_code: Optional[str]) -> Optional[Client]:
+        if not auth_code: return
+        tokens = OAuthTokens.from_code(auth_code)
+        if not tokens: return
+        return Client(tokens)
+
     def _make_api_request(self, path) -> dict:
         self.api_calls += 1
         base_url = "https://www.strava.com/api/v3/"
         return requests.get(base_url + path, headers={'Authorization': f'Bearer {self.tokens.access}'}).json()
+
+    def deauthorize(self):
+        if self.tokens:
+            self.tokens.deauthorize()
 
     # Properties are cached to avoid duplicate API calls
 
