@@ -1,2 +1,1 @@
-FLASK_APP=stravaC02.py
-FLASK_RUN_PORT=5000
+FLASK_APP=stravaCO2.py
