@@ -41,6 +41,11 @@ def about():
     refresh = request.cookies.get('refresh-token')
     return render_template('about/index.html', title='About', connect_url=api.connect_url, auth=bool(refresh))
 
+@app.route('/co2')
+def CO2():
+    refresh = request.cookies.get('refresh-token')
+    return render_template('co2/index.html', title='CO2', connect_url=api.connect_url, auth=bool(refresh))
+
 
 @app.route('/authorize')
 def authorize():

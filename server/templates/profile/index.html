@@ -54,6 +54,20 @@
 		{% endif %}
 
 	</div>
+
+	<div class="inline-row">
+	
+	
+		<div class="stat-group inline-row">
+			<i class="fa-solid fa-smog" title="Running"></i>
+				<div class="flex-column">
+					<p class="stat car" title="Car"><i class="fa-solid fa-car"></i> {{ format_distance(stats.all_run_totals.distance) }}</p>
+                    <p class="stat electric" title="Electricity"><i class="fa-solid fa-plug"></i> {{ format_distance(stats.all_run_totals.distance) }}</p>
+					<p class="stat car" title="Car"><i class="fa-solid fa-leaf"></i> {{ format_distance(stats.all_run_totals.distance) }}</p>
+				</div>
+		</div>
+	</div>
+
 </section>
 
 {% endblock %}

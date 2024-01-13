@@ -189,6 +189,9 @@ section.profile .name {
 }
 
 section.summary .stat-group {
+	display: "inline-block";
+	float:left;
+	margin-right:20px;
 	border: 1px solid var(--divider-color);
 	padding: 10px 20px;
 	border-radius: 10px;
