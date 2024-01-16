@@ -8,13 +8,11 @@ a load of attributes.
 from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
-from enum import StrEnum
+from enum import Enum
 from inspect import signature
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Self, Tuple, TypeVar, Union, overload
+from typing import Any, Optional, Tuple, Self, Union, overload
 from . import APIResponse
-
-AnyModel = TypeVar('AnyModel', bound='Model')
 
 class Model(ABC):
     """A Strava API response model"""
@@ -130,7 +128,7 @@ class ActivityStats(Model):
     def parse_field(cls, key: str, value: Any) -> Any:
         return ActivityTotal.fromResponse(value) if key.endswith('_totals') else value
 
-class SportType(StrEnum):
+class SportType(str, Enum):
     """An exhaustive list of the possible sports on Strava"""
     AlpineSki="AlpineSki"
     BackcountrySki="BackcountrySki"
