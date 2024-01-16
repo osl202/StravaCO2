@@ -153,12 +153,7 @@ section h1 {
 	text-transform: uppercase;
 	color: var(--divider-color-dark);
 	font-size: 100%;
-/*	display: table;
-	padding: 8px 12px;
-	font-size: 150%;
-	border-radius: 9999px;
-	border: 1px solid var(--divider-color);
-*/}
+}
 
 section.profile > .pill {
 	background-color: var(--font-color-dark);

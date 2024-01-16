@@ -1,0 +1,21 @@
+/*
+CSS styling for the plotly plots.
+*/
+
+body {
+	margin: 0;
+}
+
+/* Centre the plots on the page */
+.plot-container {
+	width: 100vw;
+	height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Hide the 'Loading...' text */
+._dash-loading {
+	display: none;
+}
