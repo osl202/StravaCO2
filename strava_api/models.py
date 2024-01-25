@@ -9,46 +9,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from inspect import signature
-from abc import ABC, abstractmethod
-from typing import Any, Optional, Tuple, Self, Union, overload
-from . import APIResponse
-
-class Model(ABC):
-    """A Strava API response model"""
-
-    @classmethod
-    @abstractmethod
-    def parse_field(cls, key: str, value: Any) -> Any:
-        """
-        Decides how each field should be parsed from a provided JSON
-        dictionary. This must be implemented for each `Model`.
-        """
-        raise NotImplementedError()
-
-    @overload
-    @classmethod
-    def fromResponse(cls, res: list[Any]) -> list[Self]:
-        ...
-    @overload
-    @classmethod
-    def fromResponse(cls, res: dict[str, Any]) -> Self:
-        ...
-    @classmethod
-    def fromResponse(cls, res: APIResponse) -> Union[Self, list[Self]]:
-        """
-        Initialises a model (or list of models) with keys from a dict by matching key
-        and parameter names. A derived class will need to initialise non-primitive types
-        (e.g. fields that are a `Model` themselves) before passing the JSON.
-        """
-        if isinstance(res, dict):
-            # Filter the JSON keys to those defined in the model
-            keys = list(signature(cls.__init__).parameters.keys())[1:]
-            # Set fields not in the JSON to None
-            return cls(**{k: cls.parse_field(k, res[k]) if k in res else None for k in keys})
-        else:
-            return [cls.fromResponse(r) for r in res]
-
+from typing import Any, Optional, Tuple
+from apis import Model
 
 @dataclass(frozen=True)
 class Athlete(Model):

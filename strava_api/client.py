@@ -1,11 +1,29 @@
 from __future__ import annotations
 from typing import Optional
-import warnings
-import requests
 from functools import cached_property
 from .oauth import OAuthTokens
+from apis import APIRequest, APIResponse
+
 from . import models
-from . import APIResponse
+
+class StravaAPIRequest(APIRequest):
+
+    client: Client
+
+    def __init__(self, client: Client, path: str, **query_parameters):
+        super().__init__(
+            "https://www.strava.com/api/v3/",
+            path,
+            {'Authorization': f'Bearer {client.tokens.access}'},
+            **query_parameters
+        )
+        self.client = client
+
+    @cached_property
+    def response(self) -> APIResponse:
+        self.client.api_calls += 1
+        return super().response
+
 
 class Client:
     """An authenticated Strava user"""
@@ -43,69 +61,30 @@ class Client:
 
     @cached_property
     def athlete(self) -> models.Athlete:
-        return APIRequest(self, '/athlete').model(models.Athlete)
+        return StravaAPIRequest(self, '/athlete').model(models.Athlete)
 
     @cached_property
     def activity_stats(self) -> models.ActivityStats:
-        return APIRequest(self, f"/athletes/{self.athlete.id}/stats").model(models.ActivityStats)
+        return StravaAPIRequest(self, f"/athletes/{self.athlete.id}/stats").model(models.ActivityStats)
 
     @cached_property
     def activities(self) -> list[models.SummaryActivity]:
-        return PagedAPIRequest(self, '/athlete/activities').model_list(models.SummaryActivity)
+        return StravaAPIRequest(self, '/athlete/activities', page=1, per_page=30).model_list(models.SummaryActivity)
 
 
-class APIRequest:
-    """An API request with query parameters"""
+# class StravaPagedAPIRequest(StravaAPIRequest):
+#     """An API request that gives paged results"""
 
-    client: Client
-    path: str
-    parameters: dict[str, str]
+#     per_page: int
+#     page: int
 
-    def __init__(self, client: Client, path: str, **query_parameters):
-        self.client = client
-        self.path = path
-        self.parameters = {k: str(query_parameters[k]) for k in query_parameters}
+#     def __init__(self, client: Client, path: str, per_page: int = 30, page: int = 1, **query_parameters):
+#         super().__init__(client, path, page=page, per_page=per_page, **query_parameters)
 
-    @property
-    def url(self) -> str:
-        """The complete URL of the API request"""
-        base_url = "https://www.strava.com/api/v3/"
-        return base_url + self.path + '?' + '&'.join([f'{k}={self.parameters[k]}' for k in self.parameters])
+#     def next(self):
+#         """Create API request for next page"""
+#         return StravaPagedAPIRequest(self.client, self.path, self.per_page, self.page + 1, **self.parameters)
 
-    @cached_property
-    def response(self) -> APIResponse:
-        """Fetches from the API and converts to a JSON dict"""
-        self.client.api_calls += 1
-        return requests.get(self.url, headers={'Authorization': f'Bearer {self.client.tokens.access}'}).json()
-
-    def model_list(self, kind: type[models.AnyModel]) -> list[models.AnyModel]:
-        """Converts the API response into a list of models, returns an empty list if not possible"""
-        if not isinstance(self.response, list):
-            warnings.warn("API call recieved a single model where a list of models was expected.")
-            return []
-        return [kind.fromResponse(r) for r in self.response]
-
-    def model(self, kind: type[models.AnyModel]) -> models.AnyModel:
-        """Fetches from the API and converts to the specified model, returns an empty model if not possible"""
-        if isinstance(self.response, list):
-            warnings.warn("API call recieved a list of models where a single model was expected.")
-            return kind.fromResponse({})
-        return kind.fromResponse(self.response)
-
-
-class PagedAPIRequest(APIRequest):
-    """An API request that gives paged results"""
-
-    per_page: int
-    page: int
-
-    def __init__(self, client: Client, path: str, per_page: int = 30, page: int = 1, **query_parameters):
-        super().__init__(client, path, page=page, per_page=per_page, **query_parameters)
-
-    def next(self):
-        """Create API request for next page"""
-        return PagedAPIRequest(self.client, self.path, self.per_page, self.page + 1, **self.parameters)
-
-    def previous(self):
-        """Create API request for previous page"""
-        return PagedAPIRequest(self.client, self.path, self.per_page, self.page + 1, **self.parameters)
+#     def previous(self):
+#         """Create API request for previous page"""
+#         return StravaPagedAPIRequest(self.client, self.path, self.per_page, self.page + 1, **self.parameters)
