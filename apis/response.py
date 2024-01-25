@@ -9,7 +9,10 @@ class Model(ABC):
     A API response model, i.e. a class to hold all the fields returned in
     a response.
     To create a response model, inherit from this class and give the child
-    class properties matching that of the 
+    class properties with names matching those of the response JSON. Fields
+    will be passed to the `parse_field` method, which you must implement to
+    correctly parse each field of the response.
+    See strava_api/models.py for examples.
     """
 
     @classmethod
@@ -18,6 +21,8 @@ class Model(ABC):
         """
         Decides how each field should be parsed from a provided JSON
         dictionary. This must be implemented for each `Model`.
+        For example, to parse every field as a string, you would
+        implement with `return str(value)`.
         """
         raise NotImplementedError()
 
