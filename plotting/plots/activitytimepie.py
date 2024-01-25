@@ -28,11 +28,9 @@ def update(_):
     # The following question was super helpful for this:
     # https://stackoverflow.com/questions/72595317/is-it-possible-to-generate-a-clock-chart-using-plotly
     fig = go.Figure()
-    fig.add_trace(b := go.Barpolar(
+    fig.add_trace(go.Barpolar(
         r=hist,
         offset=0.5,
-        marker_color=hist,
-        marker_colorscale='Blugrn',
         customdata=np.arange(24),
         hovertemplate="%{r} activities at %{customdata:02}:00<extra></extra>",
     ))
@@ -40,6 +38,7 @@ def update(_):
         margin=dict(l=20, t=20, r=20, b=20),
         polar=dict(
             hole=0.4,
+            bgcolor='#ccc',
             radialaxis=dict(
                 showticklabels=False,
                 showgrid=False,

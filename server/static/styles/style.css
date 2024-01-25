@@ -183,10 +183,12 @@ section.profile .name {
 	font-size: 200%;
 }
 
-section.summary .stat-group {
+.stat-group {
 	border: 1px solid var(--divider-color);
 	padding: 10px 20px;
 	border-radius: 10px;
+	text-decoration: none;
+	color: var(--font-color-dark);
 }
 
 .stat-group > i {

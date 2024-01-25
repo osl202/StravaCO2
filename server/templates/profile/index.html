@@ -7,7 +7,7 @@
 		<a class="avatar" href="https://www.strava.com/athletes/{{ athlete.id }}"><img src="{{ athlete.profile }}"/></a>
 		<div>
 			<p class="name">{{ athlete.firstname }} {{ athlete.lastname }}</p>
-			<p class="location"><i class="fa-solid fa-location-dot"></i> {{ athlete.city }}, {{ athlete.country }}</p>
+			<p class="location"><i class="fa-solid fa-location-dot"></i> {{ athlete.city }}, {{ athlete.state}}, {{ athlete.country }}</p>
 		</div>
 	</div>
 </section>
@@ -21,36 +21,36 @@
 		{% endif %}
 
 		{% if stats.all_run_totals.distance %}
-		<div class="stat-group inline-row">
+		<a href="#Run" class="stat-group inline-row">
 			<i class="fa-solid fa-person-running" title="Running"></i>
 			<div class="flex-column">
 				<p class="stat distance" title="Distance"><i class="fa-solid fa-ruler"></i> {{ format_distance(stats.all_run_totals.distance) }}</p>
 				<p class="stat duration" title="Duration"><i class="fa-solid fa-stopwatch"></i> {{ format_time(stats.all_run_totals.moving_time) }}</p>
 				<p class="stat elevation" title="Elevation Gain"><i class="fa-solid fa-arrow-trend-up"></i> {{ format_elevation(stats.all_run_totals.elevation_gain) }}</p>
 			</div>
-		</div>
+		</a>
 		{% endif %}
 
 		{% if stats.all_ride_totals.distance %}
-		<div class="stat-group inline-row nowrap">
+		<a href="#Ride" class="stat-group inline-row nowrap">
 			<i class="fa-solid fa-bicycle" title="Cycling"></i>
 			<div class="flex-column">
 				<p class="stat distance nowrap" title="Distance"><i class="fa-solid fa-ruler"></i> {{ format_distance(stats.all_ride_totals.distance) }}</p>
 				<p class="stat duration nowrap" title="Duration"><i class="fa-solid fa-stopwatch"></i> {{ format_time(stats.all_ride_totals.moving_time) }}</p>
 				<p class="stat elevation nowrap" title="Elevation Gain"><i class="fa-solid fa-arrow-trend-up"></i> {{ format_elevation(stats.all_ride_totals.elevation_gain) }}</p>
 			</div>
-		</div>
+		</a>
 		{% endif %}
 
 		{% if stats.all_swim_totals.distance %}
-		<div class="stat-group inline-row">
+		<a href="#Swim" class="stat-group inline-row">
 			<i class="fa-solid fa-person-swimming" title="Swimming"></i>
 			<div class="flex-column">
 				<p class="stat distance" title="Distance"><i class="fa-solid fa-ruler"></i> {{ format_distance(stats.all_swim_totals.distance) }}</p>
 				<p class="stat duration" title="Duration"><i class="fa-solid fa-stopwatch"></i> {{ format_time(stats.all_swim_totals.moving_time) }}</p>
 				<p class="stat elevation" title="Elevation Gain"><i class="fa-solid fa-arrow-trend-up"></i> {{ format_elevation(stats.all_swim_totals.elevation_gain) }}</p>
 			</div>
-		</div>
+		</a>
 		{% endif %}
 
 	</div>
