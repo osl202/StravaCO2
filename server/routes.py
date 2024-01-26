@@ -36,14 +36,6 @@ def home():
     return res
 
 
-@app.route('/stats/activity-times')
-def activity_times():
-    client = api.Client.from_refresh(request.cookies.get('refresh-token'))
-    if not client: return Response([])
-    times = [a.start_date_local.isoformat() for a in client.activities]
-    return times
-
-
 @app.route('/about')
 def about():
     refresh = request.cookies.get('refresh-token')

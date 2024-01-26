@@ -6,6 +6,10 @@ body {
 	margin: 0;
 }
 
+* {
+	font-family: sans-serif;
+}
+
 /* Centre the plots on the page */
 .plot-container {
 	width: 100vw;

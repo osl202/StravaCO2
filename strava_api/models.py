@@ -8,7 +8,7 @@ a load of attributes.
 from __future__ import annotations
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
+from enum import StrEnum
 from typing import Any, Optional, Tuple
 from apis import Model
 
@@ -90,7 +90,7 @@ class ActivityStats(Model):
     def parse_field(cls, key: str, value: Any) -> Any:
         return ActivityTotal.fromResponse(value) if key.endswith('_totals') else value
 
-class SportType(str, Enum):
+class SportType(StrEnum):
     """An exhaustive list of the possible sports on Strava"""
     AlpineSki="AlpineSki"
     BackcountrySki="BackcountrySki"
