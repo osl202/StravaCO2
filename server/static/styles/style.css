@@ -1,10 +1,4 @@
-:root {
-	--nav-height: 64px;
-	--font-color-dark: #222;
-	--max-page-width: 1100px;
-	--divider-color: #aaa;
-	--divider-color-dark: #666;
-}
+@import url("/styles/common.css");
 
 @keyframes bob {
 	0% {
@@ -17,16 +11,6 @@
 		transform: translateY(0);
 	}
 }
-
-body, html {
-	margin: 0;
-	padding: 0;
-}
-
-* {
-	font-family: sans-serif;
-}
-
 
 header {
 	border-bottom: 1px solid var(--divider-color);
@@ -98,33 +82,29 @@ header > #btn-strava-disconnect {
 
 #content-wrapper {
 	width: 100%;
-	padding: 0 max(calc(50% - 0.5 * var(--max-page-width)), 0px);
 	box-sizing: border-box;
+	padding: var(--card-gap);
 }
 
 #content {
-	padding: 20px;
+	max-width: var(--max-page-width);
+	min-width: var(--min-page-width);
+	margin: 0 auto;
+
+	display: grid;
+	/* https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Grids#as_many_columns_as_will_fit */
+	grid-template-columns: repeat(auto-fit, minmax(var(--card-min-width), 1fr));
+	gap: var(--card-gap);
+	grid-gap: var(--card-gap);
+	grid-auto-rows: minmax(var(--card-min-height), auto);
+}
+
+
+.flex-row {
 	display: flex;
-	flex-direction: column;
-	gap: 20px;
-}
-
-
-.flex-row,
-.pill {
-	display: inline-flex;
 	flex-direction: row;
-	gap: 20px;
 	align-items: center;
-}
-
-.inline-row > * {
-	display: inline-block;
-	vertical-align: middle;
-}
-
-.inline-row > :not(:last-child) {
-	margin-right: 20px;
+	gap: var(--card-pad);
 }
 
 .nowrap {
@@ -133,54 +113,69 @@ header > #btn-strava-disconnect {
 	text-wrap: nowrap;
 }
 
-.pill {
-	border-radius: 9999px; /* Sets radius equal to height */
+
+/* The 'cards' on the main page */
+
+.card {
+	padding: var(--card-pad);
+	border-radius: var(--card-border-radius);
 }
 
-.vline {
-	height: calc(100% - 20px);
-	width: 0;
-	margin: 10px 0;
-	border-right: 1px solid var(--divider-color);
-	transform: rotate(8deg);
+.card.strong { background-color: var(--color-strong1); }
+.card.mid { background-color: var(--color-mid1); }
+
+.card .plot {
+	width: 100%;
 }
 
-.pill .vline {
-	border-color: var(--divider-color-dark);
+
+/* The profile card with the user's pic, name and location */
+
+.card.profile {
+	grid-column: span 2;
 }
 
-section h1 {
-	text-transform: uppercase;
-	color: var(--divider-color-dark);
-	font-size: 100%;
-}
-
-section.profile > .pill {
-	background-color: var(--font-color-dark);
-	height: 100px;
-	padding-right: 30px;
-	color: white;
-}
-
-section.profile .avatar {
-	float: left;
-	border: 2px solid white;
-	border-radius: 100%;
+.card.profile .avatar {
 	height: 100%;
+	position: relative;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
 }
 
 .avatar > img {
 	border-radius: 100%;
-	height: 100%;
+	max-height: 100%;
+	aspect-ratio: 1;
+	border: 2px solid var(--color-mid1);
+	box-sizing: border-box;
 }
 
-section.summary p,
-section.profile p {
+.card.profile * {
+	color: var(--color-dim);
+	vertical-align: middle;
+}
+
+.card.profile .name {
+	font-size: 200%;
+}
+
+.card.summary p,
+.card.profile p {
 	margin: 0;
 }
 
-section.profile .name {
-	font-size: 200%;
+
+/* The summary card with each sport's totals */
+
+.card.summary {
+	grid-column: 1/-1;
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+	gap: var(--card-pad);
+	grid-gap: var(--card-pad);
+
+	padding: var(--card-gap) 0 0 0;
 }
 
 .stat-group {
@@ -191,13 +186,32 @@ section.profile .name {
 	color: var(--font-color-dark);
 }
 
+.stat-group.selected {
+	border: 2px solid var(--color-strong1);
+	background-color: var(--color-dim);
+}
+
 .stat-group > i {
 	font-size: 200%;
+}
+
+.stat-group.selected > i {
 	animation: bob ease-in-out 3s infinite;
 }
 
 .stat-group .distance {
 	font-weight: bold;
+}
+
+
+/* The map plot */
+
+.card.distance-map {
+	grid-column: span 2;
+}
+
+.card.distance-map .plot {
+	height: 400px;
 }
 
 

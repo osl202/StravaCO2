@@ -2,12 +2,10 @@
 CSS styling for the plotly plots.
 */
 
-body {
-	margin: 0;
-}
+@import url("/styles/common.css");
 
-* {
-	font-family: sans-serif;
+html, body {
+	background: none transparent;
 }
 
 /* Centre the plots on the page */
