@@ -111,3 +111,26 @@ def nearby_cities(near_to: models.ID, radius: float, min_population: int = 40_00
         if not isinstance(res.data, list): return places
         places = places + [models.PopulatedPlaceSummary.fromResponse(d) for d in res.data]
     return places
+
+def cities_near_location(lat: float, lon: float, radius: float, min_population: int = 40_000) -> list[models.PopulatedPlaceSummary]:
+    """
+    Find all cities within `radius` (in m) of the specified coordinates
+    """
+    MAX_RADIUS = 500_000
+    if radius > MAX_RADIUS:
+        warnings.warn(f"[nearby_cities] Reducing search radius from {radius:.0f} to {MAX_RADIUS:.0f}")
+        radius = MAX_RADIUS
+    parse_coord = lambda coord: ('+' if coord >= 0 else '') + f'{coord:.4f}'
+    req = GeoDBApiRequest(
+        f'/v1/geo/locations/{parse_coord(lat)}{parse_coord(lon)}/nearbyPlaces',
+        radius=radius / 1000,
+        distanceUnit="KM",
+        types=models.PopulatedPlaceType.CITY,
+        sort=models.SortBy.POPULATION_DEC,
+        minPopulation=min_population,
+    )
+    places = []
+    for res in GeoDBApiRequestPager(req, max_pages=3):
+        if not isinstance(res.data, list): return places
+        places = places + [models.PopulatedPlaceSummary.fromResponse(d) for d in res.data]
+    return places

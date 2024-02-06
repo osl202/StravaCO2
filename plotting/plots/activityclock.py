@@ -38,7 +38,7 @@ def update(_):
         margin=dict(l=20, t=20, r=20, b=20),
         polar=dict(
             hole=0.4,
-            bgcolor='#ccc',
+            bgcolor='rgba(255,255,255,0.3)',
             radialaxis=dict(
                 showticklabels=False,
                 showgrid=False,
@@ -49,6 +49,8 @@ def update(_):
                 direction='clockwise',
                 period=24,
             )
-        )
+        ),
+        paper_bgcolor='rgba(0,0,0,0)',
+        plot_bgcolor='rgba(0,0,0,0)',
     )
     return fig

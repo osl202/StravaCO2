@@ -24,6 +24,7 @@ def home():
         title='Home',
         connect_url=api.connect_url,
         auth=True,
+        sport=request.args.get('sport', default='', type=str),
         # Tell the template how to format distances and elevations
         format_distance=lambda x: units.format_distance(x, client.use_metric),
         format_elevation=lambda x: units.format_elevation(x, client.use_metric),
