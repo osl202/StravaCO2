@@ -1,3 +1,5 @@
-pyenv/
 __pycache__/
 .env
+*.sublime-project
+*.sublime-workspace
+pyrightconfig.json
