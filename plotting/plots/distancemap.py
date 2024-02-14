@@ -2,7 +2,6 @@ from random import randint
 import dash
 from flask import request
 import plotly.graph_objects as go
-from geodb_api.models import LatLong
 import strava_api as api
 from strava_api.models import SportType
 import geodb_api as geodb
