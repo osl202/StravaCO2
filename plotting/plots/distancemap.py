@@ -57,6 +57,7 @@ def update(s: str, location):
             geodb.FindPlacesParameters(
                 location=geodb.models.LatLong(location.get('lat'), location.get('lon')),
                 radius=100,
+                types=[geodb.models.PopulatedPlaceType.CITY],
             ),
             max_results=1
         )[0]
