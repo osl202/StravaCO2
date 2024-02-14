@@ -12,6 +12,10 @@
 	}
 }
 
+body {
+	min-width: var(--min-page-width);
+}
+
 header {
 	border-bottom: 1px solid var(--divider-color);
 	display: flex;
@@ -88,7 +92,6 @@ header > #btn-strava-disconnect {
 
 #content {
 	max-width: var(--max-page-width);
-	min-width: var(--min-page-width);
 	margin: 0 auto;
 
 	display: grid;
