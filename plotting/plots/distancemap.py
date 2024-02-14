@@ -2,6 +2,7 @@ from random import randint
 import dash
 from flask import request
 import plotly.graph_objects as go
+from geodb_api.models import LatLong
 import strava_api as api
 from strava_api.models import SportType
 import geodb_api as geodb
@@ -48,25 +49,32 @@ def update(s: str, location):
         "Toronto",
     ]
 
-    """
-    For the starting city, first try using the user's current location.
-    If that's not available, see if the user has a location on their
-    Strava profile. Fall back to randomly selecting from a few big cities.
-    """
+    # For the starting city, first try using the user's current location.
+    # If that's not available, see if the user has a location on their
+    # Strava profile. Fall back to randomly selecting from a few big cities.
     place_id = None
     if location and location.get('lat') and location.get('lon'):
-        cities_near_loc = geodb.cities_near_location(
-            location.get('lat'), location.get('lon'),
-            radius=10_000
-        )
-        if len(cities_near_loc) > 0:
-            place_id = cities_near_loc[0].id
+        city = geodb.find_places(
+            geodb.FindPlacesParameters(
+                location=geodb.models.LatLong(location.get('lat'), location.get('lon')),
+                radius=100,
+            ),
+            max_results=1
+        )[0]
+        if not isinstance(city, geodb.models.Error):
+            place_id = city.id
 
     if not place_id:
-        place_id = geodb.find_city_id_by_name(
+        city = geodb.find_city_by_name(
             client.athlete.city
             or fallback_places[randint(0, len(fallback_places) - 1)]
         )
+        if not isinstance(city, geodb.models.Error):
+            place_id = city.id
+
+    if not place_id:
+        # Give up :(
+        return
 
     # Get the sport from the URL query parameters
     if sport.lower() == SportType.Run.lower():
@@ -87,16 +95,22 @@ def update(s: str, location):
         verb = "travelled"
 
     # TODO: Work out what to do when the distance exceeds the maximum radius permitted by the API
-    nearby = geodb.nearby_cities(place_id, total_distance * 2)
+    nearby = geodb.places_near_place(
+        place_id,
+        geodb.NearbyPlacesParameters(
+            radius=int(total_distance * 2 / 1000),
+            sort=geodb.models.SortBy.POPULATION_DEC,
+        ),
+        max_results=30
+    )
+    nearby = [p for p in nearby if not isinstance(p, geodb.models.Error)]
     if not nearby: return
-    closest = sorted(nearby, key=lambda place: abs((place.distance or 0)*1000 - total_distance), reverse=False)
+    closest = sorted(nearby, key=lambda place: abs((place.distance or 0)*1000 - total_distance))
     distance = (closest[0].distance or 0) * 1000
-    if len(closest) == 0:
-        return
 
     src = geodb.place_details(place_id)
     dest = geodb.place_details(closest[0].id)
-    if not src or not dest:
+    if isinstance(src, geodb.models.Error) or isinstance(dest, geodb.models.Error):
         return
 
     desc_text = f"You've {verb} {total_distance/distance:.1f}x the distance from {src.name} to {dest.name}"

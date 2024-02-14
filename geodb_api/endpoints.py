@@ -1,15 +1,13 @@
 from dataclasses import dataclass
-from functools import cached_property
-from typing import Iterator, Optional, TypeVar
-import warnings
-from apis import APIRequest, APIResponse, Model
+from typing import Iterator, Optional, TypeVar, Union
+from apis import APIRequest, Model, APIRequestParameters
 
 from . import models
 
 AnyModel = TypeVar('AnyModel', bound=Model)
 
 class GeoDBApiRequest(APIRequest):
-
+    """A request to GeoDB's API"""
     def __init__(self, path: str, **query_parameters):
         super().__init__(
             "http://geodb-free-service.wirefreethought.com/",
@@ -17,120 +15,215 @@ class GeoDBApiRequest(APIRequest):
             **query_parameters
         )
 
-    @cached_property
-    def response(self) -> APIResponse:
-        return super().response
-
-    def model_list(self, kind: type[AnyModel]) -> list[AnyModel]:
-        return super().model_list(kind)
-
-    def model(self, kind: type[AnyModel]) -> AnyModel:
-        return super().model(kind)
-
 @dataclass(frozen=True)
 class GeoDBApiRequestPager:
+    """Iterate over the pages sent back from a request to GeoDB's API"""
 
     req: GeoDBApiRequest
-    max_pages: int = 5
-    page_size: int = 10
 
-    def __iter__(self) -> Iterator[models.GenericResponse]:
+    def iter_models(self, type: type[AnyModel]) -> Iterator[Union[AnyModel, models.Error]]:
         req = self.req
-        for offset in range(0, self.max_pages * self.page_size, self.page_size):
-            parameters = req.parameters | dict(limit=self.page_size, offset=offset)
-            req = GeoDBApiRequest(req.path, **parameters)
+        offset = 0
+        page_size = int(req.parameters.get('limit', 10))
 
-            res = req.model(models.GenericResponse)
-            if res.errors is not None:
-                warnings.warn(str(res.errors[0]))
-                return
-            yield res
+        # Iterate pages
+        while True:
+            parameters = req.parameters | dict(limit=page_size, offset=offset)
+            res = GeoDBApiRequest(req.path, **parameters).model(models.GenericResponse)
+
+            # Stop if we don't get a valid response
+            if res is None:
+                err = models.Error(models.ErrorCode.INVALID_RESPONSE, "Invalid response")
+                err.warn()
+                yield err
+                raise StopIteration
+
+            # Stop if the API returns an error
+            if res.errors:
+                res.errors[0].warn()
+                yield res.errors[0]
+                raise StopIteration
+
+            # Stop if we didn't get a list of models
+            if not isinstance(res.data, list):
+                err = models.Error(models.ErrorCode.INVALID_RESPONSE, "Expected array response")
+                err.warn()
+                yield err
+                raise StopIteration
+
+            if res.metadata.totalCount == 0:
+                err = models.Error(models.ErrorCode.INVALID_RESPONSE, "No items in response")
+                err.warn()
+                yield err
+                raise StopIteration
+
+            # Iterate models in page
+            for m in type.fromResponse(res.data):
+                yield m
+
             # If the response is not page-able
-            if not res.metadata:
-                return
+            if not res.metadata: raise StopIteration
             # If we have exhausted the pages
-            if res.metadata.currentOffset + len(res.data) >= res.metadata.totalCount:
-                return
+            if res.metadata.currentOffset + len(res.data) >= res.metadata.totalCount: raise StopIteration
 
-def find_city_id_by_name(name: str) -> models.ID:
+            offset += page_size
+
+
+@dataclass(frozen=True)
+class NearbyPlacesParameters(APIRequestParameters):
+    """
+    :param radius: The location radius within which to find places
+    :param distanceUnit: The unit of distance
+    :param countryIds: Only places in these countries
+    :param excludedCountryIds: Only places NOT in these countries
+    :param minPopulation: Only places having at least this population
+    :param maxPopulation: Only places having no more than this population
+    :param namePrefix: Only entities whose names start with this prefix. If languageCode is set, the prefix will be matched on the name as it appears in that language
+    :param namePrefixDefaultLangResults: When name-prefix matching, whether or not to match on names in the default language if a non-default languageCode is set
+    :param timeZoneIds: Only places in these time-zones
+    :param types: Only places for these types
+    :param asciiMode: Display results using ASCII characters
+    :param hateoasMode: Include HATEOAS-style links in results
+    :param languageCode: Display results in this language
+    :param limit: The maximum number of results to retrieve
+    :param offset: The zero-ary offset index into the results
+    :param sort: How to sort places
+    :param includeDeleted: Whether to include any divisions marked deleted
+    """
+    radius: Optional[int] = None
+    distanceUnit: models.DistanceUnit = models.DistanceUnit.KM
+    countryIds: Optional[list[str]] = None
+    excludedCountryIds: Optional[list[str]] = None
+    minPopulation: Optional[int] = None
+    maxPopulation: Optional[int] = None
+    namePrefix: Optional[str] = None
+    namePrefixDefaultLangResults: bool = True
+    timeZoneIds: Optional[list[str]] = None
+    types: Optional[list[models.PopulatedPlaceType]] = None
+    asciiMode: bool = False
+    hateoasMode: bool = True
+    languageCode: Optional[str] = None
+    limit: int = 10
+    offset: int = 0
+    sort: Optional[models.SortBy] = None
+    includeDeleted: models.DeletedType = models.DeletedType.NONE
+
+def places_near_place(place: models.ID, params: NearbyPlacesParameters, max_results: int) -> list[Union[models.PopulatedPlaceSummary, models.Error]]:
+    """
+    Find places near the given place, filtering by optional criteria.
+    If no criteria are set, you will get back all places within the default radius.
+    """
+    req = GeoDBApiRequest(
+        f'/v1/geo/places/{place}/nearbyPlaces',
+        **params.as_dict() | dict(limit=min(params.limit, max_results))
+    )
+    pager = GeoDBApiRequestPager(req)
+    places = []
+    for i, p in enumerate(pager.iter_models(models.PopulatedPlaceSummary)):
+        places.append(p)
+        if i >= max_results - 1 or isinstance(p, models.Error):
+            break
+    return places
+
+
+@dataclass(frozen=True)
+class FindPlacesParameters(NearbyPlacesParameters):
+    """
+    :param location: Only places near this location
+    :param radius: The location radius within which to find places
+    :param distanceUnit: The unit of distance
+    :param countryIds: Only places in these countries
+    :param excludedCountryIds: Only places NOT in these countries
+    :param minPopulation: Only places having at least this population
+    :param maxPopulation: Only places having no more than this population
+    :param namePrefix: Only entities whose names start with this prefix. If languageCode is set, the prefix will be matched on the name as it appears in that language
+    :param namePrefixDefaultLangResults: When name-prefix matching, whether or not to match on names in the default language if a non-default languageCode is set
+    :param timeZoneIds: Only places in these time-zones
+    :param types: Only places for these types
+    :param asciiMode: Display results using ASCII characters
+    :param hateoasMode: Include HATEOAS-style links in results
+    :param languageCode: Display results in this language
+    :param limit: The maximum number of results to retrieve
+    :param offset: The zero-ary offset index into the results
+    :param sort: How to sort places
+    :param includeDeleted: Whether to include any divisions marked deleted
+    """
+    location: Optional[models.LatLong] = None
+
+def find_places(params: FindPlacesParameters, max_results: int) -> list[Union[models.PopulatedPlaceSummary, models.Error]]:
+    """Find places, filtering by optional criteria. If no criteria are set, you will get back all known places"""
+    req = GeoDBApiRequest(
+        f'/v1/geo/places',
+        **params.as_dict() | dict(limit=min(params.limit, max_results))
+    )
+    pager = GeoDBApiRequestPager(req)
+    places = []
+    for i, p in enumerate(pager.iter_models(models.PopulatedPlaceSummary)):
+        places.append(p)
+        if i >= max_results - 1 or isinstance(p, models.Error):
+            break
+    return places
+
+def find_city_by_name(name: str) -> Union[models.PopulatedPlaceSummary, models.Error]:
     """Find the city ID corresponding to a city name"""
+    params = FindPlacesParameters(namePrefix=name, types=[models.PopulatedPlaceType.CITY])
+    place = find_places(params, max_results=1)[0]
+    if isinstance(place, models.Error): return place
+    return place
+
+
+@dataclass(frozen=True)
+class PlaceDetailsParameters(APIRequestParameters):
+    """
+    :param asciiMode: Display results using ASCII characters
+    :param languageCode: Display results in this language
+    """
+    asciiMode: bool = False
+    languageCode: Optional[str] = None
+
+def place_details(placeId: models.ID, params: PlaceDetailsParameters = PlaceDetailsParameters()) -> Union[models.PopulatedPlaceDetails, models.Error]:
+    """Get place details such as location coordinates, population, and elevation above sea-level (if available)"""
     req = GeoDBApiRequest(
-        '/v1/geo/places',
-        namePrefix=name,
-        sort=models.SortBy.POPULATION_DEC,
-        types=models.PopulatedPlaceType.CITY
+        f'/v1/geo/places/{placeId}',
+        **params.as_dict()
     )
     res = models.GenericResponse.fromResponse(req.response)
 
+    # GeoDB should always return dictionaries rather than lists
     assert isinstance(res, models.GenericResponse)
+
+    # Check for any errors
     if res.errors is not None:
-        warnings.warn(f"Failed request to GeoDB -- {str(res.errors[0])}")
-        return models.null_ID
-    if not isinstance(res.data, list):
-        warnings.warn("Expected array response")
-        return models.null_ID
+        res.errors[0].warn()
+        return res.errors[0]
 
-    return models.PopulatedPlaceSummary.fromResponse(res.data)[0].id
-
-def place_details(id: models.ID) -> Optional[models.PopulatedPlaceDetails]:
-    """Get the full details of a place"""
-    req = GeoDBApiRequest(
-        f'/v1/geo/places/{id}',
-    )
-    res = models.GenericResponse.fromResponse(req.response)
-
-    assert isinstance(res, models.GenericResponse)
-    if res.errors is not None:
-        warnings.warn(f"Failed request to GeoDB -- {str(res.errors[0])}")
-        return None
+    # Make sure the data is a single result
     if isinstance(res.data, list):
-        warnings.warn("Expected single model response")
-        return None
+        err = models.Error(models.ErrorCode.INVALID_RESPONSE, "Expected object response, received array")
+        err.warn()
+        return err
 
-    m = models.PopulatedPlaceDetails.fromResponse(res.data)
-    return None if isinstance(m, list) else m
+    return models.PopulatedPlaceDetails.fromResponse(res.data)
 
-def nearby_cities(near_to: models.ID, radius: float, min_population: int = 40_000) -> list[models.PopulatedPlaceSummary]:
-    """
-    Find all cities within `radius` (in m) of the specified city ID
-    """
-    MAX_RADIUS = 500_000
-    if radius > MAX_RADIUS:
-        warnings.warn(f"[nearby_cities] Reducing search radius from {radius:.0f} to {MAX_RADIUS:.0f}")
-        radius = MAX_RADIUS
-    req = GeoDBApiRequest(
-        f'/v1/geo/places/{near_to}/nearbyPlaces',
-        radius=radius / 1000,
-        distanceUnit="KM",
-        types=models.PopulatedPlaceType.CITY,
-        sort=models.SortBy.POPULATION_DEC,
-        minPopulation=min_population,
-    )
-    places = []
-    for res in GeoDBApiRequestPager(req, max_pages=3):
-        if not isinstance(res.data, list): return places
-        places = places + [models.PopulatedPlaceSummary.fromResponse(d) for d in res.data]
-    return places
 
-def cities_near_location(lat: float, lon: float, radius: float, min_population: int = 40_000) -> list[models.PopulatedPlaceSummary]:
-    """
-    Find all cities within `radius` (in m) of the specified coordinates
-    """
-    MAX_RADIUS = 500_000
-    if radius > MAX_RADIUS:
-        warnings.warn(f"[nearby_cities] Reducing search radius from {radius:.0f} to {MAX_RADIUS:.0f}")
-        radius = MAX_RADIUS
-    parse_coord = lambda coord: ('+' if coord >= 0 else '') + f'{coord:.4f}'
-    req = GeoDBApiRequest(
-        f'/v1/geo/locations/{parse_coord(lat)}{parse_coord(lon)}/nearbyPlaces',
-        radius=radius / 1000,
-        distanceUnit="KM",
-        types=models.PopulatedPlaceType.CITY,
-        sort=models.SortBy.POPULATION_DEC,
-        minPopulation=min_population,
-    )
-    places = []
-    for res in GeoDBApiRequestPager(req, max_pages=3):
-        if not isinstance(res.data, list): return places
-        places = places + [models.PopulatedPlaceSummary.fromResponse(d) for d in res.data]
-    return places
+# def cities_near_location(lat: float, lon: float, radius: float, min_population: int = 40_000) -> list[models.PopulatedPlaceSummary]:
+#     """
+#     Find all cities within `radius` (in m) of the specified coordinates
+#     """
+#     if radius > geodb_api.MAX_NEARBY_RADIUS:
+#         warnings.warn(f"[nearby_cities] Reducing search radius from {radius:.0f} to {geodb_api.MAX_NEARBY_RADIUS:.0f}")
+#         radius = geodb_api.MAX_NEARBY_RADIUS
+#     parse_coord = lambda coord: ('+' if coord >= 0 else '') + f'{coord:.4f}'
+#     req = GeoDBApiRequest(
+#         f'/v1/geo/locations/{parse_coord(lat)}{parse_coord(lon)}/nearbyPlaces',
+#         radius=radius / 1000,
+#         distanceUnit="KM",
+#         types=models.PopulatedPlaceType.CITY,
+#         sort=models.SortBy.POPULATION_DEC,
+#         minPopulation=min_population,
+#     )
+#     places = []
+#     for res in GeoDBApiRequestPager(req, max_pages=3):
+#         if not isinstance(res.data, list): return places
+#         places = places + [models.PopulatedPlaceSummary.fromResponse(d) for d in res.data]
+#     return places
