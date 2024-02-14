@@ -3,7 +3,7 @@ Wrapper for the GeoDB Cities API, see http://geodb-cities-api.wirefreethought.co
 """
 
 # Maximum radius for querying nearby places
-MAX_NEARBY_RADIUS=500_000
+MAX_NEARBY_RADIUS=500
 
 from . import models
 from .endpoints import (
@@ -11,4 +11,5 @@ from .endpoints import (
     find_city_by_name,
     place_details, PlaceDetailsParameters,
     places_near_place, NearbyPlacesParameters,
+    place_distance,
 )

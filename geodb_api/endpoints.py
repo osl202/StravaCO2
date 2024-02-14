@@ -206,6 +206,30 @@ def place_details(placeId: models.ID, params: PlaceDetailsParameters = PlaceDeta
     return models.PopulatedPlaceDetails.fromResponse(res.data)
 
 
+def place_distance(src: models.ID, dest: models.ID, distanceUnit: models.DistanceUnit = models.DistanceUnit.KM) -> Union[float, models.Error]:
+    req = GeoDBApiRequest(
+        f'/v1/geo/places/{src}/distance',
+        **dict(toPlaceId=dest, distanceUnit=distanceUnit)
+    )
+    res = models.GenericResponse.fromResponse(req.response)
+
+    # GeoDB should always return dictionaries rather than lists
+    assert isinstance(res, models.GenericResponse)
+
+    # Check for any errors
+    if res.errors is not None:
+        res.errors[0].warn()
+        return res.errors[0]
+
+    # Make sure the data is a single result
+    if isinstance(res.data, list):
+        err = models.Error(models.ErrorCode.INVALID_RESPONSE, "Expected object response, received array")
+        err.warn()
+        return err
+
+    return float(res.data)
+
+
 # def cities_near_location(lat: float, lon: float, radius: float, min_population: int = 40_000) -> list[models.PopulatedPlaceSummary]:
 #     """
 #     Find all cities within `radius` (in m) of the specified coordinates

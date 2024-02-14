@@ -1,4 +1,6 @@
+import dataclasses
 from random import randint
+
 import dash
 from flask import request
 import plotly.graph_objects as go
@@ -23,8 +25,9 @@ desc_text: str = ""
     dash.Output(NAME, 'figure'),
     dash.Input('url', 'search'),
     dash.Input("geolocation", "position"),
+    prevent_initial_call=True,
 )
-def update(s: str, location):
+def update(s: str, location = None):
     
     global desc_text
 
@@ -34,7 +37,7 @@ def update(s: str, location):
     client = api.Client.from_refresh(request.cookies.get('refresh-token'))
     if not client:
         # The user hasn't authorized, can't plot
-        return
+        return dash.no_update
 
     fallback_places = [
         "London",
@@ -49,11 +52,9 @@ def update(s: str, location):
     ]
 
     # For the starting city, first try using the user's current location.
-    # If that's not available, see if the user has a location on their
-    # Strava profile. Fall back to randomly selecting from a few big cities.
-    place_id = None
+    user_city = geodb.models.Error(geodb.models.ErrorCode.ENTITY_NOT_FOUND, "")
     if location and location.get('lat') and location.get('lon'):
-        city = geodb.find_places(
+        user_city = geodb.find_places(
             geodb.FindPlacesParameters(
                 location=geodb.models.LatLong(location.get('lat'), location.get('lon')),
                 radius=100,
@@ -61,20 +62,18 @@ def update(s: str, location):
             ),
             max_results=1
         )[0]
-        if not isinstance(city, geodb.models.Error):
-            place_id = city.id
 
-    if not place_id:
-        city = geodb.find_city_by_name(
+    # If the location isn't available, see if the user has a location on their
+    # Strava profile. Fall back to randomly selecting from a few big cities.
+    if isinstance(user_city, geodb.models.Error):
+        user_city = geodb.find_city_by_name(
             client.athlete.city
             or fallback_places[randint(0, len(fallback_places) - 1)]
         )
-        if not isinstance(city, geodb.models.Error):
-            place_id = city.id
 
-    if not place_id:
-        # Give up :(
-        return
+    # Couldn't find any of these cities, nothing we can do
+    if isinstance(user_city, geodb.models.Error):
+        raise dash.exceptions.PreventUpdate
 
     # Get the sport from the URL query parameters
     if sport.lower() == SportType.Run.lower():
@@ -94,40 +93,58 @@ def update(s: str, location):
         ])
         verb = "travelled"
 
-    # TODO: Work out what to do when the distance exceeds the maximum radius permitted by the API
-    nearby = geodb.places_near_place(
-        place_id,
-        geodb.NearbyPlacesParameters(
-            radius=int(total_distance * 2 / 1000),
-            sort=geodb.models.SortBy.POPULATION_DEC,
-        ),
-        max_results=30
-    )
-    nearby = [p for p in nearby if not isinstance(p, geodb.models.Error)]
-    if not nearby: return
-    closest = sorted(nearby, key=lambda place: abs((place.distance or 0)*1000 - total_distance))
-    distance = (closest[0].distance or 0) * 1000
+    # Find possible destination cities
+    # TODO: With distances larger than the country, this might not work well
+    search_radius = total_distance * 1.5 / 1000
+    if search_radius < geodb.MAX_NEARBY_RADIUS:
+        # Find nearby cities to the user's location
+        cities = geodb.places_near_place(
+            user_city.id,
+            geodb.NearbyPlacesParameters(
+                radius=int(search_radius),
+                sort=geodb.models.SortBy.POPULATION_DEC,
+            ),
+            max_results=20
+        )
+    else:
+        # If outside the maximum search radius, use the most populous cities in the same country
+        cities = geodb.find_places(
+            geodb.FindPlacesParameters(
+                countryIds=[user_city.countryCode],
+                sort=geodb.models.SortBy.POPULATION_DEC,
+            ),
+            max_results=10
+        )
+        # Get distances to all the cities
+        for i, city in enumerate(cities):
+            if isinstance(city, geodb.models.Error): continue
+            res = geodb.place_distance(user_city.id, city.id)
+            if not isinstance(res, geodb.models.Error):
+                cities[i] = dataclasses.replace(city, distance=res)
 
-    src = geodb.place_details(place_id)
-    dest = geodb.place_details(closest[0].id)
-    if isinstance(src, geodb.models.Error) or isinstance(dest, geodb.models.Error):
-        return
+    # Find the city with a distance nearest to the user's travel distance
+    cities = [p for p in cities if not isinstance(p, geodb.models.Error)]
+    if not cities: raise dash.exceptions.PreventUpdate
+    dest_city = sorted(cities, key=lambda place: abs((place.distance or 0)*1000 - total_distance))[0]
+    distance = (dest_city.distance or 0) * 1000
+    if not distance: raise dash.exceptions.PreventUpdate
 
-    desc_text = f"You've {verb} {total_distance/distance:.1f}x the distance from {src.name} to {dest.name}"
+    desc_text = f"You've {verb} {total_distance/distance:.1f}x the distance from {user_city.name} to {dest_city.name}"
 
+    # All's good, create the plot!
     fig = go.Figure()
     fig.add_trace(go.Scattermapbox(
         mode='markers+lines',
-        lon=[src.longitude, dest.longitude],
-        lat=[src.latitude, dest.latitude],
-        text=[src.name, dest.name],
+        lon=[user_city.longitude, dest_city.longitude],
+        lat=[user_city.latitude, dest_city.latitude],
+        text=[user_city.name, dest_city.name],
     ))
     fig.update_layout(
         margin={'l':0,'t':0,'b':0,'r':0},
         mapbox={
             'center': {
-                'lon': 0.5 * (src.longitude + dest.longitude),
-                'lat': 0.5 * (src.latitude + dest.latitude),
+                'lon': 0.5 * (user_city.longitude + dest_city.longitude),
+                'lat': 0.5 * (user_city.latitude + dest_city.latitude),
             },
             'style': "open-street-map",
             'zoom': 1_000_000 // total_distance,
