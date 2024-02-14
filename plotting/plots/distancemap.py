@@ -39,18 +39,6 @@ def update(s: str, location = None):
         # The user hasn't authorized, can't plot
         return dash.no_update
 
-    fallback_places = [
-        "London",
-        "Madrid",
-        "Paris",
-        "Berlin",
-        "Athens",
-        "New York",
-        "Chicago",
-        "Los Angeles",
-        "Toronto",
-    ]
-
     # For the starting city, first try using the user's current location.
     user_city = geodb.models.Error(geodb.models.ErrorCode.ENTITY_NOT_FOUND, "")
     if location and location.get('lat') and location.get('lon'):
@@ -64,14 +52,21 @@ def update(s: str, location = None):
         )[0]
 
     # If the location isn't available, see if the user has a location on their
-    # Strava profile. Fall back to randomly selecting from a few big cities.
-    if isinstance(user_city, geodb.models.Error):
-        user_city = geodb.find_city_by_name(
-            client.athlete.city
-            or fallback_places[randint(0, len(fallback_places) - 1)]
-        )
+    # Strava profile.
+    if isinstance(user_city, geodb.models.Error) and client.athlete.city:
+        user_city = geodb.find_city_by_name(client.athlete.city)
 
-    # Couldn't find any of these cities, nothing we can do
+    # Lastly, try using the location of an activity
+    if isinstance(user_city, geodb.models.Error):
+        location = geodb.models.LatLong(*client.activities[0].start_latlng)
+        user_city = geodb.find_places(geodb.FindPlacesParameters(
+            location=location,
+            radius=20,
+            types=[geodb.models.PopulatedPlaceType.CITY],
+            sort=geodb.models.SortBy.POPULATION_DEC,
+        ), max_results=1)[0]
+
+    # All of these attempts failed, nothing more we can do
     if isinstance(user_city, geodb.models.Error):
         raise dash.exceptions.PreventUpdate
 
@@ -94,7 +89,6 @@ def update(s: str, location = None):
         verb = "travelled"
 
     # Find possible destination cities
-    # TODO: With distances larger than the country, this might not work well
     search_radius = total_distance * 1.5 / 1000
     if search_radius < geodb.MAX_NEARBY_RADIUS:
         # Find nearby cities to the user's location
@@ -103,6 +97,7 @@ def update(s: str, location = None):
             geodb.NearbyPlacesParameters(
                 radius=int(search_radius),
                 sort=geodb.models.SortBy.POPULATION_DEC,
+                types=[geodb.models.PopulatedPlaceType.CITY],
             ),
             max_results=20
         )
@@ -112,6 +107,7 @@ def update(s: str, location = None):
             geodb.FindPlacesParameters(
                 countryIds=[user_city.countryCode],
                 sort=geodb.models.SortBy.POPULATION_DEC,
+                types=[geodb.models.PopulatedPlaceType.CITY],
             ),
             max_results=10
         )
@@ -129,22 +125,35 @@ def update(s: str, location = None):
     distance = (dest_city.distance or 0) * 1000
     if not distance: raise dash.exceptions.PreventUpdate
 
-    desc_text = f"You've {verb} {total_distance/distance:.1f}x the distance from {user_city.name} to {dest_city.name}"
+    if total_distance/distance < 2:
+        # If the best match we found is less than twice the distance travelled, use it
+        src_latlong = geodb.models.LatLong(user_city.latitude, user_city.longitude)
+        dest_latlong = geodb.models.LatLong(dest_city.latitude, dest_city.longitude)
+        names = (user_city.name, dest_city.name)
+        desc_text = f"You've {verb} {total_distance/distance:.1f}x the distance from {user_city.name} to {dest_city.name}!"
+    else:
+        # Otherwise, compare to the Earth's circumference
+        src_latlong = geodb.models.LatLong(0, user_city.longitude)
+        dest_latlong = geodb.models.LatLong(0, 0.008999497 * total_distance / 1000)
+        degrees = dest_latlong.longitude - src_latlong.longitude
+        percent = int(degrees / 360 * 100)
+        names = (user_city.name, f"{percent}% of the way around the Earth!")
+        desc_text = f"You've {verb} {percent}% of the Earth's circumference!"
 
     # All's good, create the plot!
     fig = go.Figure()
     fig.add_trace(go.Scattermapbox(
         mode='markers+lines',
-        lon=[user_city.longitude, dest_city.longitude],
-        lat=[user_city.latitude, dest_city.latitude],
-        text=[user_city.name, dest_city.name],
+        lon=[src_latlong.longitude, dest_latlong.longitude],
+        lat=[src_latlong.latitude, dest_latlong.latitude],
+        text=names,
     ))
     fig.update_layout(
         margin={'l':0,'t':0,'b':0,'r':0},
         mapbox={
             'center': {
-                'lon': 0.5 * (user_city.longitude + dest_city.longitude),
-                'lat': 0.5 * (user_city.latitude + dest_city.latitude),
+                'lon': 0.5 * (src_latlong.longitude + dest_latlong.longitude),
+                'lat': 0.5 * (src_latlong.latitude + dest_latlong.latitude),
             },
             'style': "open-street-map",
             'zoom': 1_000_000 // total_distance,
