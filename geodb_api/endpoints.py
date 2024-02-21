@@ -1,10 +1,8 @@
 from dataclasses import dataclass
-from typing import Iterator, Optional, TypeVar, Union
-from apis import APIRequest, Model, APIRequestParameters
+from typing import Iterator, Optional, Union
+from apis import APIRequest, APIRequestParameters, AnyModel
 
 from . import models
-
-AnyModel = TypeVar('AnyModel', bound=Model)
 
 class GeoDBApiRequest(APIRequest):
     """A request to GeoDB's API"""
@@ -29,10 +27,10 @@ class GeoDBApiRequestPager:
         # Iterate pages
         while True:
             parameters = req.parameters | dict(limit=page_size, offset=offset)
-            res = GeoDBApiRequest(req.path, **parameters).model(models.GenericResponse)
+            res = models.GenericResponse.fromResponse(GeoDBApiRequest(req.path, **parameters).response)
 
             # Stop if we don't get a valid response
-            if res is None:
+            if res is None or isinstance(res, list) or res.metadata is None:
                 err = models.Error(models.ErrorCode.INVALID_RESPONSE, "Invalid response")
                 err.warn()
                 yield err
@@ -227,7 +225,7 @@ def place_distance(src: models.ID, dest: models.ID, distanceUnit: models.Distanc
         err.warn()
         return err
 
-    return float(res.data)
+    return float(res.data) # type: ignore The API returns just a single float
 
 
 # def cities_near_location(lat: float, lon: float, radius: float, min_population: int = 40_000) -> list[models.PopulatedPlaceSummary]:

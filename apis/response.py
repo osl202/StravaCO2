@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from inspect import signature
-from typing import Any, Self, Union, overload
+from typing import Any, Self, TypeVar, Union, overload
 
-APIResponse = Union[dict[str, Any], list[Any]]
+APIResponse = Union[dict[str, Any], list[dict[str, Any]]]
 
 class Model(ABC):
     """
@@ -28,7 +28,7 @@ class Model(ABC):
 
     @overload
     @classmethod
-    def fromResponse(cls, res: list[Any]) -> list[Self]:
+    def fromResponse(cls, res: list[dict[str, Any]]) -> list[Self]:
         ...
     @overload
     @classmethod
@@ -48,3 +48,5 @@ class Model(ABC):
             return cls(**{k: cls.parse_field(k, res[k]) if k in res else None for k in keys})
         else:
             return [cls.fromResponse(r) for r in res]
+
+AnyModel = TypeVar('AnyModel', bound=Model)
