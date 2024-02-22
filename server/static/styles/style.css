@@ -93,7 +93,9 @@ header > #btn-strava-disconnect {
 #content {
 	max-width: var(--max-page-width);
 	margin: 0 auto;
+}
 
+.cards-container {
 	display: grid;
 	/* https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Grids#as_many_columns_as_will_fit */
 	grid-template-columns: repeat(auto-fit, minmax(var(--card-min-width), 1fr));

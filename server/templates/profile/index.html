@@ -2,64 +2,68 @@
 
 {% block content %}
 
-<div class="card profile strong flex-row">
-	<a class="avatar" href="https://www.strava.com/athletes/{{ athlete.id }}"><img src="{{ athlete.profile }}"/></a>
-	<div>
-		<p class="name nowrap">{{ athlete.firstname }} {{ athlete.lastname }}</p>
-		<p class="location nowrap"><i class="fa-solid fa-location-dot"></i> {{ athlete.city }}, {{ athlete.state}}, {{ athlete.country }}</p>
+<div class="cards-container">
+
+	<div class="card profile strong flex-row">
+		<a class="avatar" href="https://www.strava.com/athletes/{{ athlete.id }}"><img src="{{ athlete.profile }}"/></a>
+		<div>
+			<p class="name nowrap">{{ athlete.firstname }} {{ athlete.lastname }}</p>
+			<p class="location nowrap"><i class="fa-solid fa-location-dot"></i> {{ athlete.city }}, {{ athlete.state}}, {{ athlete.country }}</p>
+		</div>
 	</div>
-</div>
 
-<div class="card mid activity-clock flex-row">
-	<iframe class="plot" frameborder="0" allowtransparency="true" scrolling="no" src="/plots/activityclock?sport={{sport}}"></iframe>
-</div>
+	<div class="card mid activity-clock flex-row">
+		<iframe class="plot" frameborder="0" allowtransparency="true" scrolling="no" src="/plots/activityclock?sport={{sport}}"></iframe>
+	</div>
 
-<div class="card summary">
-	{% if not (stats.all_run_totals.distance or stats.all_ride_totals.distance or stats.all_swim_totals.distance) %}
-	<p>No activities found. Make sure you've given enough permissions.</p>
-	{% endif %}
+	<div class="card summary">
+		{% if not (stats.all_run_totals.distance or stats.all_ride_totals.distance or stats.all_swim_totals.distance) %}
+		<p>No activities found. Make sure you've given enough permissions.</p>
+		{% endif %}
 
-	<a href="/" class="stat-group flex-row {{ 'selected' if sport == '' else '' }}">
-		<i class="fa-solid fa-house" title="All sports"></i>
-		<p>All sports</p>
-	</a>
+		<a href="/" class="stat-group flex-row {{ 'selected' if sport == '' else '' }}">
+			<i class="fa-solid fa-house" title="All sports"></i>
+			<p>All sports</p>
+		</a>
 
-	{% if stats.all_run_totals.distance %}
-	<a href="?sport=run" class="stat-group flex-row {{ 'selected' if sport == 'run' else '' }}">
-		<i class="fa-solid fa-person-running" title="Running"></i>
-		<div class="flex-column">
-			<p class="stat distance" title="Distance"><i class="fa-solid fa-ruler"></i> {{ format_distance(stats.all_run_totals.distance) }}</p>
-			<p class="stat duration" title="Duration"><i class="fa-solid fa-stopwatch"></i> {{ format_time(stats.all_run_totals.moving_time) }}</p>
-			<p class="stat elevation" title="Elevation Gain"><i class="fa-solid fa-arrow-trend-up"></i> {{ format_elevation(stats.all_run_totals.elevation_gain) }}</p>
-		</div>
-	</a>
-	{% endif %}
+		{% if stats.all_run_totals.distance %}
+		<a href="?sport=run" class="stat-group flex-row {{ 'selected' if sport == 'run' else '' }}">
+			<i class="fa-solid fa-person-running" title="Running"></i>
+			<div class="flex-column">
+				<p class="stat distance" title="Distance"><i class="fa-solid fa-ruler"></i> {{ format_distance(stats.all_run_totals.distance) }}</p>
+				<p class="stat duration" title="Duration"><i class="fa-solid fa-stopwatch"></i> {{ format_time(stats.all_run_totals.moving_time) }}</p>
+				<p class="stat elevation" title="Elevation Gain"><i class="fa-solid fa-arrow-trend-up"></i> {{ format_elevation(stats.all_run_totals.elevation_gain) }}</p>
+			</div>
+		</a>
+		{% endif %}
 
-	{% if stats.all_ride_totals.distance %}
-	<a href="?sport=ride" class="stat-group flex-row {{ 'selected' if sport == 'ride' else '' }}">
-		<i class="fa-solid fa-person-biking" title="Cycling"></i>
-		<div class="flex-column">
-			<p class="stat distance nowrap" title="Distance"><i class="fa-solid fa-ruler"></i> {{ format_distance(stats.all_ride_totals.distance) }}</p>
-			<p class="stat duration nowrap" title="Duration"><i class="fa-solid fa-stopwatch"></i> {{ format_time(stats.all_ride_totals.moving_time) }}</p>
-			<p class="stat elevation nowrap" title="Elevation Gain"><i class="fa-solid fa-arrow-trend-up"></i> {{ format_elevation(stats.all_ride_totals.elevation_gain) }}</p>
-		</div>
-	</a>
-	{% endif %}
+		{% if stats.all_ride_totals.distance %}
+		<a href="?sport=ride" class="stat-group flex-row {{ 'selected' if sport == 'ride' else '' }}">
+			<i class="fa-solid fa-person-biking" title="Cycling"></i>
+			<div class="flex-column">
+				<p class="stat distance nowrap" title="Distance"><i class="fa-solid fa-ruler"></i> {{ format_distance(stats.all_ride_totals.distance) }}</p>
+				<p class="stat duration nowrap" title="Duration"><i class="fa-solid fa-stopwatch"></i> {{ format_time(stats.all_ride_totals.moving_time) }}</p>
+				<p class="stat elevation nowrap" title="Elevation Gain"><i class="fa-solid fa-arrow-trend-up"></i> {{ format_elevation(stats.all_ride_totals.elevation_gain) }}</p>
+			</div>
+		</a>
+		{% endif %}
 
-	{% if stats.all_swim_totals.distance %}
-	<a href="?sport=swim" class="stat-group flex-row {{ 'selected' if sport == 'swim' else '' }}">
-		<i class="fa-solid fa-person-swimming" title="Swimming"></i>
-		<div class="flex-column">
-			<p class="stat distance" title="Distance"><i class="fa-solid fa-ruler"></i> {{ format_distance(stats.all_swim_totals.distance) }}</p>
-			<p class="stat duration" title="Duration"><i class="fa-solid fa-stopwatch"></i> {{ format_time(stats.all_swim_totals.moving_time) }}</p>
-			<p class="stat elevation" title="Elevation Gain"><i class="fa-solid fa-arrow-trend-up"></i> {{ format_elevation(stats.all_swim_totals.elevation_gain) }}</p>
-		</div>
-	</a>
-	{% endif %}
-</div>
+		{% if stats.all_swim_totals.distance %}
+		<a href="?sport=swim" class="stat-group flex-row {{ 'selected' if sport == 'swim' else '' }}">
+			<i class="fa-solid fa-person-swimming" title="Swimming"></i>
+			<div class="flex-column">
+				<p class="stat distance" title="Distance"><i class="fa-solid fa-ruler"></i> {{ format_distance(stats.all_swim_totals.distance) }}</p>
+				<p class="stat duration" title="Duration"><i class="fa-solid fa-stopwatch"></i> {{ format_time(stats.all_swim_totals.moving_time) }}</p>
+				<p class="stat elevation" title="Elevation Gain"><i class="fa-solid fa-arrow-trend-up"></i> {{ format_elevation(stats.all_swim_totals.elevation_gain) }}</p>
+			</div>
+		</a>
+		{% endif %}
+	</div>
 
-<div class="card mid distance-map">
-	<iframe class="plot" frameborder="0" allowtransparency="true" scrolling="no" src="/plots/distancemap?sport={{ sport }}"></iframe>
+	<div class="card mid distance-map">
+		<iframe class="plot" frameborder="0" allowtransparency="true" scrolling="no" src="/plots/distancemap?sport={{ sport }}"></iframe>
+	</div>
+
 </div>
 
 {% endblock %}
