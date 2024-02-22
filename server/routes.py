@@ -10,6 +10,11 @@ import strava_api as api
 from . import units
 
 
+def render_error(code: int):
+    refresh = request.cookies.get('refresh-token')
+    return render_template('error.html', title=f'Error {code}', connect_url=api.connect_url, auth=bool(refresh), code=code)
+
+
 @app.route('/')
 def home():
     client = api.Client.from_refresh(request.cookies.get('refresh-token'))
@@ -19,6 +24,13 @@ def home():
         res.delete_cookie('refresh-token')
         return res
 
+    athlete = api.get_athlete(client)
+    if isinstance(athlete, api.models.Fault): return render_error(500)
+    activity_stats = api.get_athlete_stats(client, athlete.id)
+    if isinstance(activity_stats, api.models.Fault): return render_error(500)
+
+    use_metric = athlete.measurement_preference == 'meters'
+
     res = render_template(
         'profile/index.html',
         title='Home',
@@ -26,12 +38,12 @@ def home():
         auth=True,
         sport=request.args.get('sport', default='', type=str),
         # Tell the template how to format distances and elevations
-        format_distance=lambda x: units.format_distance(x, client.use_metric),
-        format_elevation=lambda x: units.format_elevation(x, client.use_metric),
+        format_distance=lambda x: units.format_distance(x, use_metric),
+        format_elevation=lambda x: units.format_elevation(x, use_metric),
         format_time=units.format_time,
         # Athlete info
-        athlete=client.athlete,
-        stats=client.activity_stats,
+        athlete=athlete,
+        stats=activity_stats,
     )
     print(f"Responded to '{request.path}' with {client.api_calls} API calls")
     return res
@@ -69,3 +81,4 @@ def deauthorize():
     res = redirect('/')
     res.delete_cookie('refresh-token')
     return res
+

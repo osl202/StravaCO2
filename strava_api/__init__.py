@@ -4,5 +4,10 @@ Contains classes to obtain auth tokens in `.oauth`, and to parse responses from 
 Start by initialising a `Client` using `OAuthTokens`.
 """
 
-from .client import Client
-from .oauth import OAuthTokens, connect_url
+from .oauth import connect_url, Client
+from . import models
+from .endpoints import (
+    get_athlete,
+    get_athlete_activities,
+    get_athlete_stats,
+)

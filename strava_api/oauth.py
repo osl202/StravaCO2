@@ -60,3 +60,51 @@ class OAuthTokens:
         if req.status_code != 200: return
         res = req.json()
         return cls(res['access_token'], res['refresh_token'])
+
+
+class Client:
+    """An authenticated Strava user"""
+
+    tokens: OAuthTokens
+    api_calls: int = 0 # Track total number of API calls for this client
+
+    def __init__(self, tokens: OAuthTokens):
+        self.tokens = tokens
+
+    @classmethod
+    def from_refresh(cls, refresh_token: Optional[str]) -> Optional[Client]:
+        if not refresh_token: return
+        tokens = OAuthTokens.from_refresh(refresh_token)
+        if not tokens: return
+        return Client(tokens)
+
+    @classmethod
+    def from_code(cls, auth_code: Optional[str]) -> Optional[Client]:
+        if not auth_code: return
+        tokens = OAuthTokens.from_code(auth_code)
+        if not tokens: return
+        return Client(tokens)
+
+    def deauthorize(self):
+        if self.tokens:
+            self.tokens.deauthorize()
+
+    # Properties are cached to avoid duplicate API calls
+
+    # @cached_property
+    # def use_metric(self) -> bool:
+    #     """Whether to display measurements in metric or imperial units"""
+    #     return self.athlete.measurement_preference != 'feet'
+
+    # @cached_property
+    # def athlete(self) -> models.Athlete:
+    #     return StravaAPIRequest(self, '/athlete').model(models.Athlete)
+
+    # @cached_property
+    # def activity_stats(self) -> models.ActivityStats:
+    #     return StravaAPIRequest(self, f"/athletes/{self.athlete.id}/stats").model(models.ActivityStats)
+
+    # @cached_property
+    # def activities(self) -> list[models.SummaryActivity]:
+    #     return StravaAPIRequest(self, '/athlete/activities', page=1, per_page=30).model_list(models.SummaryActivity)
+

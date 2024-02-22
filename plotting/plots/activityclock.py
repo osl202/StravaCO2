@@ -20,8 +20,10 @@ def update(_):
         # The user hasn't authorized, can't plot
         return
 
+    activities = api.get_athlete_activities(client, max_results=60)
+    if isinstance(activities, api.models.Fault): return dash.no_update
     hours = [
-        a.start_date_local.hour for a in client.activities
+        a.start_date_local.hour for a in activities
     ]
     hist = np.histogram(hours, range(25))[0]
 

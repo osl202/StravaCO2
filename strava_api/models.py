@@ -10,12 +10,43 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 from typing import Any, Optional, Tuple
+import warnings
 from apis import Model
+
+@dataclass(frozen=True)
+class Error(Model):
+    """Included in a `Fault` response to indicate what went wrong."""
+    code: str                               # The code associated with this error.
+    field: str                              # The specific field or aspect of the resource associated with this error.
+    resource: str                           # The type of resource associated with this error.
+
+    @classmethod
+    def parse_field(cls, key: str, value: Any) -> Any:
+        return value
+
+    def warn(self):
+        warnings.warn(f"[Strava] Error {self.code} from field {self.field}")
+
+@dataclass(frozen=True)
+class Fault(Model):
+    """Encapsulates the errors that may be returned from the API."""
+    errors: list[Error]                     # The set of specific errors associated with this fault, if any.
+    message: str                            # The message of the fault.
+
+    @classmethod
+    def parse_field(cls, key: str, value: Any) -> Any:
+        if key == 'errors':
+            return Error.fromResponse(value)
+        return value
+
+    def warn(self):
+        warnings.warn(f"[Strava] {self.message}")
+        for e in self.errors: e.warn()
 
 @dataclass(frozen=True)
 class Athlete(Model):
     """A summary of an athlete. Not all of the fields will be available."""
-    id: int                                 # The unique identifier of the athlete
+    id: ID                                  # The unique identifier of the athlete
     firstname: str                          # The athlete's first name.
     lastname: str                           # The athlete's last name.
     profile_medium: str                     # URL to a 62x62 pixel profile picture.

@@ -1,11 +1,8 @@
 import dataclasses
-from random import randint
-
 import dash
 from flask import request
 import plotly.graph_objects as go
 import strava_api as api
-from strava_api.models import SportType
 import geodb_api as geodb
 from urllib.parse import parse_qs
 
@@ -39,6 +36,11 @@ def update(s: str, location = None):
         # The user hasn't authorized, can't plot
         return dash.no_update
 
+    athlete = api.get_athlete(client)
+    if isinstance(athlete, api.models.Fault): return dash.no_update
+    activity_stats = api.get_athlete_stats(client, athlete.id)
+    if isinstance(activity_stats, api.models.Fault): return dash.no_update
+
     # For the starting city, first try using the user's current location.
     user_city = geodb.models.Error(geodb.models.ErrorCode.ENTITY_NOT_FOUND, "")
     if location and location.get('lat') and location.get('lon'):
@@ -53,38 +55,40 @@ def update(s: str, location = None):
 
     # If the location isn't available, see if the user has a location on their
     # Strava profile.
-    if isinstance(user_city, geodb.models.Error) and client.athlete.city:
-        user_city = geodb.find_city_by_name(client.athlete.city)
+    if isinstance(user_city, geodb.models.Error) and athlete.city:
+        user_city = geodb.find_city_by_name(athlete.city)
 
     # Lastly, try using the location of an activity
     if isinstance(user_city, geodb.models.Error):
-        location = geodb.models.LatLong(*client.activities[0].start_latlng)
-        user_city = geodb.find_places(geodb.FindPlacesParameters(
-            location=location,
-            radius=20,
-            types=[geodb.models.PopulatedPlaceType.CITY],
-            sort=geodb.models.SortBy.POPULATION_DEC,
-        ), max_results=1)[0]
+        activities = api.get_athlete_activities(client, max_results=1)
+        if not isinstance(activities, api.models.Fault):
+            location = geodb.models.LatLong(*activities[0].start_latlng)
+            user_city = geodb.find_places(geodb.FindPlacesParameters(
+                location=location,
+                radius=20,
+                types=[geodb.models.PopulatedPlaceType.CITY],
+                sort=geodb.models.SortBy.POPULATION_DEC,
+            ), max_results=1)[0]
 
     # All of these attempts failed, nothing more we can do
     if isinstance(user_city, geodb.models.Error):
         raise dash.exceptions.PreventUpdate
 
     # Get the sport from the URL query parameters
-    if sport.lower() == SportType.Run.lower():
-        total_distance = client.activity_stats.all_run_totals.distance
+    if sport.lower() == api.models.SportType.Run.lower():
+        total_distance = activity_stats.all_run_totals.distance
         verb = "run"
-    elif sport.lower() == SportType.Ride.lower():
-        total_distance = client.activity_stats.all_ride_totals.distance
+    elif sport.lower() == api.models.SportType.Ride.lower():
+        total_distance = activity_stats.all_ride_totals.distance
         verb = "cycled"
-    elif sport.lower() == SportType.Swim.lower():
-        total_distance = client.activity_stats.all_swim_totals.distance
+    elif sport.lower() == api.models.SportType.Swim.lower():
+        total_distance = activity_stats.all_swim_totals.distance
         verb = "swum"
     else:
         total_distance = sum([
-            client.activity_stats.all_run_totals.distance,
-            client.activity_stats.all_ride_totals.distance,
-            client.activity_stats.all_swim_totals.distance,
+            activity_stats.all_run_totals.distance,
+            activity_stats.all_ride_totals.distance,
+            activity_stats.all_swim_totals.distance,
         ])
         verb = "travelled"
 
