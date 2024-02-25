@@ -22,6 +22,14 @@ You'll need to create an application in your account to use the API, follow the 
 The `strava_api` module defines a `Client` class which you can use to fetch data from the API.
 Every API response is a *model*, which are listed on the Strava API reference and implemented as classes in `strava_api/models.py`, each with a list of fields that are returned in the respose.
 
+## GeoDB API
+See the [reference](https://wirefreethought.github.io/geodb-cities-api-docs/#tag/Geo) for available calls to the GeoDB API, and some example responses.
+The API can be used to find details about places, nearby places, etc.
+This project uses the free version of the API which requires no authentication, so simple GET requests do the trick.
+
+Similar to the Strava api, the `geodb_api` module contains `models.py` which are dataclasses based on the responses from the API, and `endpoints.py` which wraps API endpoints with python functions.
+This module does NOT provide full coverage of the API, I've simply implemented the parts of it that I need for now.
+
 ## Plotting
 Plots are created with [plotly](https://plotly.com/python/).
 To create a new plot, make a file in `plotting/plots` -- see `plotting/plots/example.py` for an example of how to do this.
