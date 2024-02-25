@@ -209,13 +209,15 @@ header > #btn-strava-disconnect {
 }
 
 
-/* The map plot */
+/* The map plots */
 
-.card.distance-map {
+.card.distance-map,
+.card.activity-map {
 	grid-column: span 2;
 }
 
-.card.distance-map .plot {
+.card.distance-map .plot,
+.card.activity-map .plot {
 	height: 400px;
 }
 

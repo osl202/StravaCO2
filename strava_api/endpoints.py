@@ -106,7 +106,7 @@ def get_athlete_activities(
     before: Optional[datetime] = None,
     after: Optional[datetime] = None,
     per_page: int = 30,
-    max_results: int = 30
+    max_results: Optional[int] = 30
 ) -> Union[list[models.SummaryActivity], models.Fault]:
     """
     Returns the activities of an athlete for a specific identifier.
@@ -120,7 +120,7 @@ def get_athlete_activities(
         '/athlete/activities',
         before=int(datetime.today().timestamp()) if before is None else int(before.timestamp()),
         after=0 if after is None else int(after.timestamp()),
-        per_page=min(per_page, max_results)
+        per_page=min(per_page, max_results or per_page)
     )
     pager = StravaAPIRequestPager(req)
     results = list(itertools.islice(pager.iter_models(models.SummaryActivity), max_results))
