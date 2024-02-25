@@ -1,4 +1,3 @@
-import dataclasses
 import dash
 from flask import request
 import plotly.graph_objects as go
@@ -11,8 +10,6 @@ NAME = __name__.split('.')[-1]
 dash.register_page(__name__)
 layout = dash.dcc.Loading(children=[
     dash.dcc.Location(id='url', refresh=False),
-    dash.dcc.Geolocation(id="geolocation"),
-    dash.html.P(id='travelled-to-place-name'),
     dash.dcc.Graph(id=NAME, config=dict(displayModeBar=False)),
 ], className='plot-container')
 
@@ -22,7 +19,6 @@ desc_text: str = ""
 @dash.callback(
     dash.Output(NAME, 'figure'),
     dash.Input('url', 'search'),
-    prevent_initial_call=False,
 )
 def update(s: str):
     
