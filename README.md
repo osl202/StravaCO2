@@ -2,7 +2,7 @@
 
 ## Quick setup
 - Install required packages with `pip install -r requirements.txt`
-- Set the `CLIENT_ID` and `CLIENT_SECRET` environment variables to access the Strava API
+- Set the `CLIENT_ID` and `CLIENT_SECRET` environment variables to access the Strava API (look up how to do this in e.g. bash or zsh, whatever shell you are using)
 - Start the server with `flask run` in the root directory, add the option `--debug` to enable hot refresh of file changes
 - Visit `localhost:5000` in your web browser
 
