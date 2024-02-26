@@ -52,7 +52,7 @@ def update(s: str):
 
     # All's good, create the plot!
     fig = go.Figure()
-    fig.add_trace(go.Scattermapbox(
+    fig.add_trace(go.Scattergeo(
         mode='markers',
         lon=[l.longitude for l in locations],
         lat=[l.latitude for l in locations],
@@ -60,13 +60,19 @@ def update(s: str):
     ))
     fig.update_layout(
         margin={'l':0,'t':0,'b':0,'r':0},
-        mapbox={
-            'style': "open-street-map",
-            'center': {
-                'lon': sum(l.longitude for l in locations) / N,
-                'lat': sum(l.latitude for l in locations) / N,
-            },
-        }
+        # mapbox={
+        #     'style': "open-street-map",
+        #     'center': {
+        #         'lon': sum(l.longitude for l in locations) / N,
+        #         'lat': sum(l.latitude for l in locations) / N,
+        #     },
+        # }
+        geo = dict(
+            projection_type = 'orthographic',
+            showland = True,
+            # landcolor = 'rgb(243, 243, 243)',
+            # countrycolor = 'rgb(204, 204, 204)',
+        ),
     )
     return fig
 
